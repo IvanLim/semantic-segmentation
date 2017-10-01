@@ -21,7 +21,7 @@ We then perform the following deconvolution sequence:
 **8x_upsample( 2x_upsample(2x_upsample(conv7) + pool4) + pool3 )**
 
 ### Results
-Below are some test results of the output. The FCN seems to perform well under normal lighting.
+The FCN seems to perform well under normal lighting.
 ![Normal example 2](https://github.com/IvanLim/semantic-segmentation/blob/master/report/normal2.png "Normal example 2")
 
 In the case where there is extremely bright light, parts of the road are not properly identified.
