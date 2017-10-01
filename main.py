@@ -58,24 +58,13 @@ def layers(tf_vgg_frozen_layer3, tf_vgg_frozen_layer4, tf_vgg_frozen_layer7, num
     :return: The Tensor for the last layer of output
     """
 
-    regularizer = None
-    # regularizer = tf.contrib.layers.l2_regularizer(1e-3)
-    # initializer_normal = tf.contrib.layers.xavier_initializer() 
+    # Weights initialization
     initializer = tf.truncated_normal_initializer(stddev=1e-2)
-    initializer_normal = tf.truncated_normal_initializer(stddev=1e-2)
 
     # Perform a 1x1 convolutions on the vgg layers to preserve spatial information
-    pool3 = tf.layers.conv2d(tf_vgg_frozen_layer3, num_classes, 1, strides=(1, 1), padding='same', 
-                             kernel_regularizer=regularizer,
-                             kernel_initializer=initializer_normal)
-
-    pool4 = tf.layers.conv2d(tf_vgg_frozen_layer4, num_classes, 1, strides=(1, 1), padding='same', 
-                             kernel_regularizer=regularizer,
-                             kernel_initializer=initializer_normal)
-
-    conv7 = tf.layers.conv2d(tf_vgg_frozen_layer7, num_classes, 1, strides=(1, 1), padding='same', 
-                             kernel_regularizer=regularizer,
-                             kernel_initializer=initializer_normal)
+    pool3 = tf.layers.conv2d(tf_vgg_frozen_layer3, num_classes, 1, strides=(1, 1), padding='same', kernel_initializer=initializer)
+    pool4 = tf.layers.conv2d(tf_vgg_frozen_layer4, num_classes, 1, strides=(1, 1), padding='same', kernel_initializer=initializer)
+    conv7 = tf.layers.conv2d(tf_vgg_frozen_layer7, num_classes, 1, strides=(1, 1), padding='same', kernel_initializer=initializer)
 
     # Perform upsampling, and add skip layers, as per 
     # the FCN-8 architecture https://people.eecs.berkeley.edu/~jonlong/long_shelhamer_fcn.pdf
@@ -87,25 +76,19 @@ def layers(tf_vgg_frozen_layer3, tf_vgg_frozen_layer4, tf_vgg_frozen_layer7, num
     #   8x_upsample( 2x_upsample(2x_upsample(conv7) + pool4) + pool3 )
 
     # 2x_upsample(conv7)
-    output = tf.layers.conv2d_transpose(conv7, num_classes, 4, strides=(2, 2), padding='same', 
-                                        kernel_regularizer=regularizer,
-                                        kernel_initializer=initializer)
+    output = tf.layers.conv2d_transpose(conv7, num_classes, 4, strides=(2, 2), padding='same', kernel_initializer=initializer)
 
     # 2x_upsample(conv7) + pool4
     output = tf.add(output, pool4)
 
     # 2x_upsample(2x_upsample(conv7) + pool4)
-    output = tf.layers.conv2d_transpose(output, num_classes, 4, strides=(2, 2), padding='same', 
-                                        kernel_regularizer=regularizer,
-                                        kernel_initializer=initializer)
+    output = tf.layers.conv2d_transpose(output, num_classes, 4, strides=(2, 2), padding='same', kernel_initializer=initializer)
 
     # 2x_upsample(2x_upsample(conv7) + pool4) + pool3
     output = tf.add(output, pool3)
 
     # 8x_upsample( 2x_upsample(2x_upsample(conv7) + pool4) + pool3 )
-    output = tf.layers.conv2d_transpose(output, num_classes, 16, strides=(8, 8), padding='same', 
-                                        kernel_regularizer=regularizer,
-                                        kernel_initializer=initializer)
+    output = tf.layers.conv2d_transpose(output, num_classes, 16, strides=(8, 8), padding='same', kernel_initializer=initializer)
 
     return output
 tests.test_layers(layers)
