@@ -6,7 +6,7 @@ Train a Fully Convolutional Network(FCN) to label the pixels of a road in images
 There are two parts to a fully convolutional network: the **encoder** that performs the convolutions, and the **decoder** that performs deconvolutions. 
 
 ## Encoder
-For the encoder, we take advantage of transfer learning, and use the existing **vgg16** pre-trained network. 
+For the encoder, we take advantage of transfer learning, and use the existing **VGG16** pre-trained network. 
 
 From this network, we extract the following:
 * The final layer (conv7)
@@ -20,12 +20,18 @@ We then perform the following deconvolution sequence:
 
 **8x_upsample( 2x_upsample(2x_upsample(conv7) + pool4) + pool3 )**
 
-### Results
-The FCN seems to perform well under normal lighting.
-![Normal example 2](https://github.com/IvanLim/semantic-segmentation/blob/master/report/normal2.png "Normal example 2")
+## Weights initialization, and regularization
+When initializing the weights, I originally tried initializing with a **Xavier initializer**, but the results were terrible. After several rounds of experimentation with different combinations, I achieve the best results **without** using L2 regularization and by initializing the weights with a standard **truncated normal initializer**.
 
-In the case where there is extremely bright light, parts of the road are not properly identified.
-![Bright light example](https://github.com/IvanLim/semantic-segmentation/blob/master/report/bright_light.png "Bright light example")
+### Results
+The FCN seems to perform well under different cases: single roads, double roads, and in cases where there are strong shadows.
+
+![One road in image](https://github.com/IvanLim/semantic-segmentation/blob/master/report/single.png "One road in image")
+
+![Two roads in image](https://github.com/IvanLim/semantic-segmentation/blob/master/report/double.png "Two roads in image")
+
+![Strong shadows](https://github.com/IvanLim/semantic-segmentation/blob/master/report/shadows.png "Strong shadows")
+
 
 ### Setup
 ##### Frameworks and Packages
