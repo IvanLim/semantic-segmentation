@@ -73,19 +73,19 @@ def layers(tf_vgg_frozen_layer3, tf_vgg_frozen_layer4, tf_vgg_frozen_layer7, num
     #   8x_upsample( 2x_upsample(2x_upsample(conv7) + pool4) + pool3 )
 
     # 2x_upsample(conv7)
-    output = tf.layers.conv2d_transpose(conv7, num_classes, 4, strides=(2, 2), padding='same', kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+    output = tf.contrib.layers.conv2d_transpose(conv7, num_classes, 4, strides=(2, 2), padding='same', weights_regularizer=tf.contrib.layers.l2_regularizer(1e-3), weights_initializer=tf.contrib.layers.xavier_initializer())
 
     # 2x_upsample(conv7) + pool4
     output = tf.add(output, pool4)
 
     # 2x_upsample(2x_upsample(conv7) + pool4)
-    output = tf.layers.conv2d_transpose(output, num_classes, 4, strides=(2, 2), padding='same', kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+    output = tf.contrib.layers.conv2d_transpose(output, num_classes, 4, strides=(2, 2), padding='same', weights_regularizer=tf.contrib.layers.l2_regularizer(1e-3), weights_initializer=tf.contrib.layers.xavier_initializer())
 
     # 2x_upsample(2x_upsample(conv7) + pool4) + pool3
-    output = tf.add(output, pool3)
+    output = tf.contrib.add(output, pool3)
 
     # 8x_upsample( 2x_upsample(2x_upsample(conv7) + pool4) + pool3 )
-    output = tf.layers.conv2d_transpose(output, num_classes, 16, strides=(8, 8), padding='same', kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+    output = tf.contrib.layers.conv2d_transpose(output, num_classes, 16, strides=(8, 8), padding='same', weights_regularizer=tf.contrib.layers.l2_regularizer(1e-3), weights_initializer=tf.contrib.layers.xavier_initializer())
 
     return output
 tests.test_layers(layers)
@@ -143,10 +143,12 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
         # For each image-label pair in batch
         for image, label in get_batches_fn(batch_size):
             
+            # We use a smaller learning rate (1e-4) because we have a small batch size
+            # which might cause the gradients to be unstable
             _, loss = sess.run([train_op, cross_entropy_loss], feed_dict={input_image: image, 
                                                                correct_label: label, 
                                                                keep_prob: 0.5, 
-                                                               learning_rate: 1e-3})
+                                                               learning_rate: 1e-4})
             batch_num += 1
             print ("  - Batch: {} Loss: {}".format(batch_num, loss))
 
@@ -157,7 +159,7 @@ tests.test_train_nn(train_nn)
 
 def run():
     epochs = 20
-    batch_size = 15
+    batch_size = 8
 
     num_classes = 2
     image_shape = (160, 576)
@@ -169,19 +171,12 @@ def run():
     # Download pretrained vgg model
     helper.maybe_download_pretrained_vgg(data_dir)
 
-    # OPTIONAL: Train and Inference on the cityscapes dataset instead of the Kitti dataset.
-    # You'll need a GPU with at least 10 teraFLOPS to train on.
-    #  https://www.cityscapes-dataset.com/
-
     with tf.Session() as sess:
         # Path to vgg model
         vgg_path = os.path.join(data_dir, 'vgg')
 
         # Create function to get batches
         get_batches_fn = helper.gen_batch_function(os.path.join(data_dir, 'data_road/training'), image_shape)
-
-        # OPTIONAL: Augment Images for better results
-        #  https://datascience.stackexchange.com/questions/5224/how-to-prepare-augment-images-for-neural-network
 
         # Load tensors / frozen layers from the vgg16 model
         tf_input_image, tf_keep_prob, tf_vgg_frozen_layer3, tf_vgg_frozen_layer4, tf_vgg_frozen_layer7 = load_vgg(sess, vgg_path)
@@ -198,7 +193,6 @@ def run():
 
         sess.run(tf.global_variables_initializer())
         train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_loss, tf_input_image, tf_correct_label, tf_keep_prob, tf_learning_rate)
-
 
         # Save inference data using helper.save_inference_samples
         helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, tf_keep_prob, tf_input_image)
