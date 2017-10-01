@@ -183,46 +183,27 @@ def run():
         # OPTIONAL: Augment Images for better results
         #  https://datascience.stackexchange.com/questions/5224/how-to-prepare-augment-images-for-neural-network
 
-
+        # Load tensors / frozen layers from the vgg16 model
         tf_input_image, tf_keep_prob, tf_vgg_frozen_layer3, tf_vgg_frozen_layer4, tf_vgg_frozen_layer7 = load_vgg(sess, vgg_path)
 
-        print('Load layers ok')
-
+        # Add our deconvolution layers and skip layers to make it a full FCN
         layer_output = layers(tf_vgg_frozen_layer3, tf_vgg_frozen_layer4, tf_vgg_frozen_layer7, num_classes)
-
-        print('Add layers ok')
 
         # Set up the two remaining tf_placeholders to be plugged into our tensorflow functions
         # Logits and labels must have the same shape. Our logits are 4D tensors so labels will need to match
         tf_correct_label = tf.placeholder(tf.float32, [None, None, None, num_classes])
         tf_learning_rate = tf.placeholder(tf.float32)
 
-        print('Placeholders ok')
-
         logits, train_op, cross_entropy_loss = optimize(layer_output, tf_correct_label, tf_learning_rate, num_classes)
 
-        print('Optimizer setup ok')
-
-        # call optimizer
-
-        # TODO: Train NN using the train_nn function
-        # call train_nn
-
         sess.run(tf.global_variables_initializer())
-
-        print('global vars init ok')
-
-
         train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_loss, tf_input_image, tf_correct_label, tf_keep_prob, tf_learning_rate)
 
-        print('Training ok')
 
-
-        # TODO: Save inference data using helper.save_inference_samples
-        #  helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image)
+        # Save inference data using helper.save_inference_samples
+        helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, tf_keep_prob, tf_input_image)
 
         # OPTIONAL: Apply the trained model to a video
-
 
 if __name__ == '__main__':
     run()
