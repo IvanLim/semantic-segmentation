@@ -59,9 +59,12 @@ def layers(tf_vgg_frozen_layer3, tf_vgg_frozen_layer4, tf_vgg_frozen_layer7, num
     """
 
     # Perform a 1x1 convolutions on the vgg layers to preserve spatial information
-    pool3 = tf.layers.conv2d(tf_vgg_frozen_layer3, num_classes, 1, strides=(1, 1), padding='same', kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
-    pool4 = tf.layers.conv2d(tf_vgg_frozen_layer4, num_classes, 1, strides=(1, 1), padding='same', kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
-    conv7 = tf.layers.conv2d(tf_vgg_frozen_layer7, num_classes, 1, strides=(1, 1), padding='same', kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+    pool3 = tf.layers.conv2d(tf_vgg_frozen_layer3, num_classes, 1, strides=(1, 1), padding='same', 
+                             kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3), kernel_initializer=tf.contrib.layers.xavier_initializer())
+    pool4 = tf.layers.conv2d(tf_vgg_frozen_layer4, num_classes, 1, strides=(1, 1), padding='same', 
+                             kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3), kernel_initializer=tf.contrib.layers.xavier_initializer())
+    conv7 = tf.layers.conv2d(tf_vgg_frozen_layer7, num_classes, 1, strides=(1, 1), padding='same', 
+                             kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3), kernel_initializer=tf.contrib.layers.xavier_initializer())
 
     # Perform upsampling, and add skip layers, as per 
     # the FCN-8 architecture https://people.eecs.berkeley.edu/~jonlong/long_shelhamer_fcn.pdf
@@ -73,19 +76,19 @@ def layers(tf_vgg_frozen_layer3, tf_vgg_frozen_layer4, tf_vgg_frozen_layer7, num
     #   8x_upsample( 2x_upsample(2x_upsample(conv7) + pool4) + pool3 )
 
     # 2x_upsample(conv7)
-    output = tf.contrib.layers.conv2d_transpose(conv7, num_classes, 4, strides=(2, 2), padding='same', weights_regularizer=tf.contrib.layers.l2_regularizer(1e-3), weights_initializer=tf.contrib.layers.xavier_initializer())
+    output = tf.contrib.layers.conv2d_transpose(conv7, num_classes, 4, stride=2, padding='same', weights_regularizer=tf.contrib.layers.l2_regularizer(1e-3), weights_initializer=tf.contrib.layers.xavier_initializer())
 
     # 2x_upsample(conv7) + pool4
     output = tf.add(output, pool4)
 
     # 2x_upsample(2x_upsample(conv7) + pool4)
-    output = tf.contrib.layers.conv2d_transpose(output, num_classes, 4, strides=(2, 2), padding='same', weights_regularizer=tf.contrib.layers.l2_regularizer(1e-3), weights_initializer=tf.contrib.layers.xavier_initializer())
+    output = tf.contrib.layers.conv2d_transpose(output, num_classes, 4, stride=2, padding='same', weights_regularizer=tf.contrib.layers.l2_regularizer(1e-3), weights_initializer=tf.contrib.layers.xavier_initializer())
 
     # 2x_upsample(2x_upsample(conv7) + pool4) + pool3
-    output = tf.contrib.add(output, pool3)
+    output = tf.add(output, pool3)
 
     # 8x_upsample( 2x_upsample(2x_upsample(conv7) + pool4) + pool3 )
-    output = tf.contrib.layers.conv2d_transpose(output, num_classes, 16, strides=(8, 8), padding='same', weights_regularizer=tf.contrib.layers.l2_regularizer(1e-3), weights_initializer=tf.contrib.layers.xavier_initializer())
+    output = tf.contrib.layers.conv2d_transpose(output, num_classes, 16, stride=8, padding='same', weights_regularizer=tf.contrib.layers.l2_regularizer(1e-3), weights_initializer=tf.contrib.layers.xavier_initializer())
 
     return output
 tests.test_layers(layers)
@@ -148,7 +151,7 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
             _, loss = sess.run([train_op, cross_entropy_loss], feed_dict={input_image: image, 
                                                                correct_label: label, 
                                                                keep_prob: 0.5, 
-                                                               learning_rate: 1e-4})
+                                                               learning_rate: 1e-5})
             batch_num += 1
             print ("  - Batch: {} Loss: {}".format(batch_num, loss))
 
@@ -158,8 +161,8 @@ tests.test_train_nn(train_nn)
 
 
 def run():
-    epochs = 20
-    batch_size = 8
+    epochs = 60
+    batch_size = 4
 
     num_classes = 2
     image_shape = (160, 576)
